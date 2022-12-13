@@ -43,8 +43,14 @@ public class DogDB {
         return dogs;
     }
 
-    public void updateDog() {
-
+    public boolean updateDog(Dog dog) throws SQLException {
+        String sql = "UPDATE dogs SET name = ?, age = ?, breed= ? WHERE id = ?";
+        PreparedStatement stmt = conn.prepareStatement(sql);
+        stmt.setString(1, dog.getName());
+        stmt.setInt(2, dog.getAge());
+        stmt.setString(3, dog.getBreed());
+        stmt.setInt(4, dog.getId());
+        return stmt.executeUpdate() > 0;
     }
 
     public boolean deleteDog(int id) throws SQLException {

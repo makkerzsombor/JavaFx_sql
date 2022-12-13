@@ -37,6 +37,8 @@ public class DogController {
     @FXML
     private Button cancelButton;
 
+    private int updateId;
+
     @FXML
     private void initialize() {
         nameCol.setCellValueFactory(new PropertyValueFactory<>("name"));
@@ -74,21 +76,31 @@ public class DogController {
 
     @FXML
     public void updateClick(ActionEvent actionEvent) {
+        Dog selected = getSelectedDog();
+        if (selected == null) return;
+        updateId = selected.getId();
+        nameInput.setText(selected.getName());
+        ageInput.getValueFactory().setValue(selected.getAge());
+        breedInput.setText(selected.getBreed());
+        setStateToUpdate();
+    }
 
+    private void setStateToUpdate() {
+        submitButton.setText("Update");
+        dogsTable.setDisable(true);
+        updateButton.setDisable(true);
+        deleteButton.setDisable(true);
     }
 
     @FXML
     public void deleteClick(ActionEvent actionEvent) {
-        int selectedIndex = dogsTable.getSelectionModel().getSelectedIndex();
-        if (selectedIndex == -1){
-            alert(Alert.AlertType.WARNING, "Törléshez előbb válasszon ki egy kutyát a táblázatból!","");
-            return;
-        }
+        Dog selected = getSelectedDog();
+        if (selected == null) return;
+
         Optional<ButtonType> optionalButtonType = alert(Alert.AlertType.CONFIRMATION,"Biztos, hogy törölni szeretné a kiválasztott kutyát?","");
         if (optionalButtonType.isEmpty() || !optionalButtonType.get().equals(ButtonType.OK) && !optionalButtonType.get().equals(ButtonType.YES)){
             return;
         }
-        Dog selected = dogsTable.getSelectionModel().getSelectedItem();
         try {
             if (db.deleteDog(selected.getId())) {
                 alert(Alert.AlertType.WARNING, "Sikeres Törlés!", "");
@@ -99,6 +111,16 @@ public class DogController {
         } catch (SQLException e) {
             sqlAlert(e);
         }
+    }
+
+    private Dog getSelectedDog() {
+        int selectedIndex = dogsTable.getSelectionModel().getSelectedIndex();
+        if (selectedIndex == -1){
+            alert(Alert.AlertType.WARNING, "Előbb válasszon ki egy kutyát a táblázatból!","");
+            return null;
+        }
+        Dog selected = dogsTable.getSelectionModel().getSelectedItem();
+        return selected;
     }
 
     @FXML
@@ -114,6 +136,29 @@ public class DogController {
             alert(Alert.AlertType.WARNING, "Fajta megadása kötelező", "");
             return;
         }
+        if (submitButton.getText().equals("Update")){
+            updateDog(name, age, breed);
+        }else{
+            createDog(name, age, breed);
+        }
+    }
+
+    private void updateDog(String name, int age, String breed) {
+        Dog dog = new Dog(updateId, name, age, breed);
+        try{
+            if (db.updateDog(dog)){
+                alert(Alert.AlertType.WARNING, "Sikeres modosítás!", "");
+                resetForm();
+                readDogs();
+            }else{
+                alert(Alert.AlertType.WARNING, "Sikertelen modosítás!", "");
+            }
+        }catch (SQLException e){
+            sqlAlert(e);
+        }
+    }
+
+    private void createDog(String name, int age, String breed) {
         Dog dog = new Dog(name, age, breed);
         try {
             if (db.createDog(dog)){
@@ -122,6 +167,7 @@ public class DogController {
             }else{
                 alert(Alert.AlertType.WARNING, "Sikertelen felvétel!", "");
             }
+            readDogs();
         } catch (SQLException e) {
             sqlAlert(e);
         }
@@ -131,10 +177,15 @@ public class DogController {
         nameInput.setText("");
         breedInput.setText("");
         ageInput.getValueFactory().setValue(0);
+
+        submitButton.setText("Submit");
+        dogsTable.setDisable(false);
+        updateButton.setDisable(false);
+        deleteButton.setDisable(false);
     }
 
     @FXML
     public void cancelClick(ActionEvent actionEvent) {
-
+        resetForm();
     }
 }
